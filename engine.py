@@ -1,6 +1,6 @@
 """Simulates the specified tries"""
 
-from .interface import Game, prompt
+from interface import Game, prompt
 
 def get_number_of_simulation_tries():
     """prompts user for simulation turns, and validates"""
