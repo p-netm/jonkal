@@ -45,6 +45,12 @@ class Player:
     @property
     def total_beads(self):
         return self.beads_in_nest + self.beads_in_bowls
+
+    def empty_bowls(self):
+        """empties the user bowls, except for their nest"""
+        bowls = [bowl for bowl in self.board.bowls[self.bowls_range_start: self.bowls_range_end - 1]]
+        for bowl in bowls:
+            bowl.beads = 0
     
     def _move(self, start_index, debug=False):
         """ perform a legal move"""
@@ -211,6 +217,23 @@ class Game:
     def __repr__(self):
         return "\n{}\n\n{}\n\n{}\n".format(repr(self.player1), repr(self.board), repr(self.player2))
 
+    def determine_winner(self, current_player):
+        """
+        :param: player who made the move that ended the game
+        :Returns: player who won, else returns None if players drew
+        peaks into the 2 player objects and uses number of beads to determine who won.
+        Called after one player has exhausted legal moves"""
+        other_player = self.player1 if current_player == self.player2 else self.player2
+        # winner takes it all except for beads in the loser's nest
+        current_player_beads = current_player.total_beads +  other_player.beads_in_bowls
+        other_player_beads = other_player.beads_in_nest
+        other_player.empty_bowls()
+        if current_player_beads > other_player_beads:
+            return current_player
+        if other_player_beads > current_player_beads:
+            return other_player
+
+
     def run(self):
         """
         Executes a single instance of game play i.e from the first player's move to until
@@ -231,10 +254,7 @@ class Game:
                 # implies that current_player exhausted legal moves; time to determine winner
                 self.current_player = None
                 break
-        if self.player1.total_beads > self.player2.total_beads:
-            self.winner = self.player1
-        elif self.player2.total_beads > self.player1.total_beads:
-            self.winner = self.player2
+        winner = self.determine_winner(current_player)
 
 
 
