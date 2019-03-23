@@ -11,7 +11,7 @@ class Player:
     """
     Represents a player instance
     """
-    def __init__(self, bowls_range_start, bowls_range_end, board, strategy):
+    def __init__(self, bowls_range_start, bowls_range_end, board, strategy, title):
         """
         :param bowls_range_start: lower bound index for the bowls owned by this user
         :param bowls_range_end: the upper bound index not included
@@ -19,64 +19,57 @@ class Player:
         :param strategy: an integer denoting wither of the 2 strategies
         """
         # store a reference to the board, The board should be visible to each user
+        self.title = title
         self.board = board
         self.bowls_range_start = bowls_range_start
         self.bowls_range_end = bowls_range_end
-        res = self.count_beads() # returns tuple (nested_beads, beads in normal bowls)
-        self.beads_in_nest = res[0]
-        self.beads_in_bowls = res[1]
         self.owned_bowls_range = range(self.bowls_range_start, self.bowls_range_end)
         # a player should also know his strategy
         self.strategy = strategy
         self.total_beads = self.beads_in_nest + self.beads_in_bowls
 
     def __repr__(self):
-        return "<(Player) nested beads: %d; beads_in_bowls: %d; strategy: %d>" % \
-               (self.beads_in_nest, self.beads_in_bowls, self.strategy)
+        return "<(Player :%s) nested beads: %d; beads_in_bowls: %d; strategy: %d>" % \
+               (self.title, self.beads_in_nest, self.beads_in_bowls, self.strategy)
 
-    def count_beads(self):
-        """
-        :param: int: start: the lowerbound index delimiter for bowls belonging to this player
-        :param: int: start: the upperbound index delimiter for bowls belonging to this player
-        :returns: tuple: containing beads in this players nest and total beads in his bowls respectively
-        range format -> (start: end] # the end is not included in the range but the start is.
-        """
-        start = self.bowls_range_start
-        end = self.bowls_range_end
-        beads_in_nest = 0
-        beads_in_bowls = 0
-        for bowl in self.board.bowls[start: end]:
-            if bowl.type == 'Nest':
-                beads_in_nest += bowl.beads
-            if bowl.type == 'Bowl':
-                beads_in_bowls += bowl.beads
-        return beads_in_nest, beads_in_bowls
+    @property
+    def beads_in_nest(self):
+        return self.board.bowls[self.bowls_range_end - 1].beads
+
+    @property
+    def beads_in_bowls(self):
+        temp = [bowl.beads for bowl in self.board.bowls[self.bowls_range_start: self.bowls_range_end - 1]]
+        return sum(temp)
     
-    def _move(self, start_index):
+    def _move(self, start_index, debug=False):
         """ perform a legal move"""
         # empty bowl at index then iterate over next k bowls while adding beads
         _bowls = self.board.bowls
         beads_to_move = _bowls[start_index].beads
         _bowls[start_index].beads = 0
-        for idx in range(start_index + 1, start_index + beads_to_move + 1):
+        end = start_index + beads_to_move + 1
+        start = start_index + 1
+        while start < end:
+            idx = start
             i = idx % len(_bowls) # to create a form of loop back somewhat like a circular list
             current_bowl = _bowls[i]
-            if current_bowl.type == 'Nest':
-                # we check that this home bowl is owned by this user
-                if not self.owns_bowl(i):
-                    beads_to_move += 1
-                    continue
+            if current_bowl.type == 'Nest' and not self.owns_bowl(i):
+                # we check that this nest is owned by this user
+                end += 1
+                start += 1
+                continue
             current_bowl.beads += 1
             # special conditions: if this is the last bead placement then we have 2 situations
             # :situation1: this bowl is this players nest and thus they get an extra move
             # :situation2: this bowl is empty
-            if current_bowl.type == 'Nest' and current_bowl.beads == 1 and idx == start_index + beads_to_move:
+            if (current_bowl.type == 'Nest') and (current_bowl.beads == 1) and (idx == end - 1):
                 self.move()
-            if current_bowl.beads == 1 and idx == start_index + beads_to_move:
+            if current_bowl.beads == 1 and idx == start_index + beads_to_move and self.owns_bowl(idx):
                 # capture beads in this bowl and those of the opposite bowl
                 current_bowl.beads = 0
                 _bowls[self.bowls_range_end - 1].beads += _bowls[self.opposite_bowl(i)].beads + 1
                 _bowls[self.opposite_bowl(i)].beads = 0
+            start += 1
         return self.state_checker()
 
     def get_starting_index(self):
@@ -95,16 +88,19 @@ class Player:
             for index in self.owned_bowls_range:
                 if self.board.bowls[index].type == "Nest":
                     continue # excepts the nest bowl as an invalid index to pick from
+                if self.board.bowls[index].beads == max_beads:
+                    valid_indices.append(index)
                 if self.board.bowls[index].beads > max_beads:
                     max_beads = self.board.bowls[index].beads
                     valid_indices = [index]
-                elif self.board.bowls[index].beads == max_beads:
-                    valid_indices.append(index)
-        return choice(valid_indices)
+        if len(valid_indices):
+            return choice(valid_indices)
 
     def move(self):
         choosen_index = self.get_starting_index()
-        return self._move(choosen_index)
+        if choosen_index is not None:
+            return self._move(choosen_index)
+        return False
             
     def state_checker(self):
         """
@@ -206,7 +202,7 @@ class Game:
         self.winner = None
 
     def __repr__(self):
-        return "{}\n\n{}\n\n{}".format(repr(self.player1), repr(self.board), repr(self.player2))
+        return "\n{}\n\n{}\n\n{}\n".format(repr(self.player1), repr(self.board), repr(self.player2))
 
     def run(self):
         """
@@ -216,9 +212,9 @@ class Game:
         players = [self.player1, self.player2]
         count = 0
 
-        self.current_player = players[count % len(players)]
         # execute a single iteration of the game i.e each player gets their turn to play/move
-        while self.current_player:
+        while True:
+            self.current_player = players[count % len(players)]
             action = self.current_player.move()
             if action:
                 # Truthy value denotes player move executed successfully and still has legal moves
@@ -227,6 +223,7 @@ class Game:
             else:
                 # implies that current_player exhausted legal moves; time to determine winner
                 self.current_player = None
+                break
         if self.player1.total_beads > self.player2.total_beads:
             self.winner = self.player1
         else:
@@ -276,9 +273,10 @@ def create_player(name, board):
     player2_strategy_prompt = "Which strategy should player 2 use {1, 2}?: "
 
     prompt_message = player1_strategy_prompt if '1' in name else player2_strategy_prompt
-    start = 0 if '1' in name else  (len(board.bowls) // 2) + 1
-    end = len(board.bowls) // 2 if '1' in name else  len(board.bowls) - 1
+    title = 'player1' if '1' in name else 'player2'
+    start = 0 if '1' in name else len(board.bowls) // 2
+    end = len(board.bowls) // 2 if '1' in name else  len(board.bowls)
 
     strategy = prompt(prompt_message, range(1, 3))
-    new_player = Player(start, end, board, strategy)
+    new_player = Player(start, end, board, strategy, title)
     return new_player

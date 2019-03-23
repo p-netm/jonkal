@@ -3,6 +3,9 @@ kalaha (3).pdf
 /venv
 /.idea
 /.vscode
+log.txt
+report.docx
+.pytest_cache/
 
 
 # Created by .ignore support plugin (hsz.mobi)

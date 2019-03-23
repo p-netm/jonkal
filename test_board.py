@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch
-from interface import Board, create_board, prompt
+from .interface import Board, create_board, prompt
 
 class BoardTest(unittest.TestCase):
     """Verifies the internal representational structure of the board
@@ -19,14 +19,15 @@ class BoardTest(unittest.TestCase):
         """
         board = Board(3, 5)
         self.assertIsInstance(board.bowls, list)
-        self.assertEqual(board.bowls[len(board.bowls) // 2].type, 'Nest')
-        for index in range(12):
-            if index % 5 != 0:
-                self.assertEqual(board.bowls[index].beads, 3)
-                self.assertEqual(board.bowls[index].type, 'Bowl')
+        self.assertEqual(board.bowls[len(board.bowls) // 2 - 1].type, 'Nest')
+        for index in range(1, 13):
+            idx = index - 1
+            if index % 6 != 0:
+                self.assertEqual(board.bowls[idx].beads, 3)
+                self.assertEqual(board.bowls[idx].type, 'Bowl')
             else:
-                self.assertEqual(board.bowls[index].beads, 0)
-                self.assertEqual(board.bowls[index].type, 'Nest')
+                self.assertEqual(board.bowls[idx].beads, 0)
+                self.assertEqual(board.bowls[idx].type, 'Nest')
 
     def test_re_underlying_representation(self):
         """
@@ -34,13 +35,14 @@ class BoardTest(unittest.TestCase):
         sure the representaion is correct
         """
         board = Board(6, 7) # 7 bowls with 6 beads per bowl
-        for index in range(16):
-            if index % 7 != 0:
-                self.assertEqual(board.bowls[index].beads, 3)
-                self.assertEqual(board.bowls[index].type, 'Bowl')
+        for index in range(1, 17):
+            idx = index - 1
+            if index % 8 != 0:
+                self.assertEqual(board.bowls[idx].beads, 6)
+                self.assertEqual(board.bowls[idx].type, 'Bowl')
             else:
-                self.assertEqual(board.bowls[index].beads, 0)
-                self.assertEqual(board.bowls[index].type, 'Nest')
+                self.assertEqual(board.bowls[idx].beads, 0)
+                self.assertEqual(board.bowls[idx].type, 'Nest')
 
     def test_repr(self):
         """check if we have errors in serializing object to string"""
@@ -49,10 +51,11 @@ class BoardTest(unittest.TestCase):
 
     def test__prompt_method(self):
         with patch('builtins.input', return_value=1):
-            self.assertTrue(prompt('some prompt'), range(1, 5))
+            self.assertTrue(prompt('some prompt', range(1, 5)), range(1, 5))
+            self.assertTrue(prompt('some prompt', [1, 2, 3, 4]), range(1, 5))
 
     def test_create_board_factory_method(self):
-        with patch('prompt', return_value=4):
+        with patch('builtins.input', return_value=4):
             board = create_board()
             self.assertEqual(board.bowls[0].beads, 4)
 
