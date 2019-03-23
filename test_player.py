@@ -1,6 +1,5 @@
 import unittest
 from .interface import Player, create_player, Board
-from unittest.mock import patch
 
 class PlayerTest(unittest.TestCase):
     """
@@ -15,8 +14,7 @@ class PlayerTest(unittest.TestCase):
 
     def _utility(self, strategy=1, board=None, title='player1'):
         board = self.board if not board else board
-        with patch('builtins.input', return_value=strategy):
-            player = create_player(title, board)
+        player = create_player(title, board, strategy)
         return player
 
     def list_rep(self, board):

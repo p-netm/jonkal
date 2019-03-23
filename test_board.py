@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch
-from .interface import Board, create_board, prompt
+from kalaha.interface import Board, create_board, prompt
 
 class BoardTest(unittest.TestCase):
     """Verifies the internal representational structure of the board
@@ -55,7 +55,6 @@ class BoardTest(unittest.TestCase):
             self.assertTrue(prompt('some prompt', [1, 2, 3, 4]), range(1, 5))
 
     def test_create_board_factory_method(self):
-        with patch('builtins.input', return_value=4):
-            board = create_board()
-            self.assertEqual(board.bowls[0].beads, 4)
+        board = create_board(4)
+        self.assertEqual(board.bowls[0].beads, 4)
 

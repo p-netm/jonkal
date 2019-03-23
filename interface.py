@@ -26,7 +26,7 @@ class Player:
         self.owned_bowls_range = range(self.bowls_range_start, self.bowls_range_end)
         # a player should also know his strategy
         self.strategy = strategy
-        self.total_beads = self.beads_in_nest + self.beads_in_bowls
+        
 
     def __repr__(self):
         return "<(Player :%s) nested beads: %d; beads_in_bowls: %d; strategy: %d>" % \
@@ -40,6 +40,10 @@ class Player:
     def beads_in_bowls(self):
         temp = [bowl.beads for bowl in self.board.bowls[self.bowls_range_start: self.bowls_range_end - 1]]
         return sum(temp)
+    
+    @property
+    def total_beads(self):
+        return self.beads_in_nest + self.beads_in_bowls
     
     def _move(self, start_index, debug=False):
         """ perform a legal move"""
@@ -193,11 +197,11 @@ class Game:
     interleave them together. Also takes charge of the simulation runs and the report
     generation.
     """
-    def __init__(self):
-        self.board = create_board()
+    def __init__(self, beads_per_bowl, player1_strat, player2_strat):
+        self.board = create_board(beads_per_bowl)
         # defines the indexes delimiters that define bowls at certain index belong to which player
-        self.player1 = create_player('player1', self.board)
-        self.player2 = create_player('player2', self.board)
+        self.player1 = create_player('player1', self.board, player1_strat)
+        self.player2 = create_player('player2', self.board, player2_strat)
         self.current_player = None
         self.winner = None
 
@@ -226,12 +230,35 @@ class Game:
                 break
         if self.player1.total_beads > self.player2.total_beads:
             self.winner = self.player1
-        else:
+        elif self.player2.total_beads > self.player1.total_beads:
             self.winner = self.player2
 
 
 
-# Some utility methods : factory methods and get_user_input functionalities
+# factory methods, that abstract details of object creation
+
+def create_board(beads_per_bowl):
+    """
+    used to create a Board object
+    """
+    new_board = Board(beads_per_bowl)
+    return new_board
+
+def create_player(name, board, player_strategy):
+    """
+    :params: name: either player1 or player2;
+        helps define the indexes ranges for bowls that the player will own
+    :params: board: a instance of Board class
+    :params: player_strategy: the strategy for this player
+    Factory method to create and return a player with the required instance fields
+    populated with required data
+    """
+    title = 'player1' if '1' in name else 'player2'
+    start = 0 if '1' in name else len(board.bowls) // 2
+    end = len(board.bowls) // 2 if '1' in name else  len(board.bowls)
+    new_player = Player(start, end, board, player_strategy, title)
+    return new_player
+
 def prompt(to_prompt, range):
     """
     :param to_prompt: messaged to be displayed through prompt
@@ -247,36 +274,3 @@ def prompt(to_prompt, range):
                 return user_input
         except ValueError as error:
             _prompt = "Accepted_values {}, ".format(str(list(range))) + to_prompt
-
-
-def create_board():
-    """
-    :param: None:
-    :return: None
-    prompts the user for the required data pertaining to the board,
-     validates it and then returns a Board object
-    """
-    beads_per_bowl_prompt = "How many balls in each bowl {3, 4, 5, 6}?: "
-    beads_per_bowl = prompt(beads_per_bowl_prompt, range(3, 7))
-    new_board = Board(beads_per_bowl)
-    return new_board
-
-def create_player(name, board):
-    """
-    :params: name: either player1 or player2;
-        helps define the indexes ranges for bowls that the player will own
-    :params: board: a instance of Board class
-    Factory method to create and return a player with the required instance fields
-    populated with required data
-    """
-    player1_strategy_prompt = "Which strategy should player 1 use {1, 2}?: "
-    player2_strategy_prompt = "Which strategy should player 2 use {1, 2}?: "
-
-    prompt_message = player1_strategy_prompt if '1' in name else player2_strategy_prompt
-    title = 'player1' if '1' in name else 'player2'
-    start = 0 if '1' in name else len(board.bowls) // 2
-    end = len(board.bowls) // 2 if '1' in name else  len(board.bowls)
-
-    strategy = prompt(prompt_message, range(1, 3))
-    new_player = Player(start, end, board, strategy, title)
-    return new_player
