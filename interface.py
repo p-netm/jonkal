@@ -252,9 +252,10 @@ class Game:
                 count += 1
             else:
                 # implies that current_player exhausted legal moves; time to determine winner
+                self.winner = self.determine_winner(self.current_player)
                 self.current_player = None
                 break
-        winner = self.determine_winner(current_player)
+        
 
 
 
