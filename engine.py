@@ -1,6 +1,9 @@
 """Simulates the specified tries"""
 
 from interface import Game, prompt
+import numpy as np
+import matplotlib.pyplot as plt
+import os
 
 def get_number_of_simulation_tries():
     """prompts user for simulation turns, and validates"""
@@ -17,8 +20,35 @@ def get_number_of_simulation_tries():
 
     return simulation_tries, beads_per_bowl, player1_strategy, player2_strategy
 
-def plot_results():
-    pass
+
+def file_check(filename):
+    """
+    checks if the outfall pdf file is already in this directory
+    if so, then delete it.
+    """
+    this_dir = os.path.abspath(os.path.dirname(__file__))
+    file_path = os.path.join(this_dir, filename)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+def plot_bar(diction, filename):
+    """:param: dictionary whose keys are players and values are their scores
+    plots results from simulation as percentage of wins (y-axis) against 
+    the respective player's scores on the (x-axis). Then write image to pdf file"""
+    xlabels = list(diction.keys())
+    y_values = [diction[key] for key in xlabels]
+
+    bar_width = 0.90
+
+    x = np.arange(len(y_values))
+
+    fig, ax = plt.subplots()
+    ax.bar(x, y_values, width=bar_width)
+    ax.set_xticks(x + (bar_width/2.0))
+    ax.set_xticklabels(xlabels)
+
+    file_check(filename)
+    plt.savefig(filename)
 
 def main():
     simulations, beads_per_bowl, player1_strat, player2_strat = get_number_of_simulation_tries()
@@ -50,5 +80,8 @@ def main():
         print_fmt = "Players drawed at {} tries out of {}"
         print_message = print_fmt.format(len(games_won_by_player1), len(all_games))
     print(print_message)
+    filename = "outfall.pdf"
+    data = {"player1": len(games_won_by_player1), "player2": len(games_won_by_player2)}
+    plot_bar(data, filename)
 
 main()
