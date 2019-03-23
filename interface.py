@@ -1,11 +1,12 @@
 """
-This module creates a logical model /representation of the board.
+This module creates a logical model /representation of the board, players and the Game
 Actions include:
-    impelementation of an appropriate data structure to represent the bowls and the Nest
-    a factory method that takes required arguments to create the board
-    
+    Game: class using composition to interleave players and board
+    implementation of an appropriate data structure to represent the bowls and the Nest
+    a factory methods that take the worry out of creating objects with the right parameters
 """
 from random import choice
+
 
 class Player:
     """
@@ -18,26 +19,26 @@ class Player:
         :param board: A Board obj
         :param strategy: an integer denoting wither of the 2 strategies
         """
-        # store a reference to the board, The board should be visible to each user
         self.title = title
-        self.board = board
+        self.board = board # player will have reference to board
         self.bowls_range_start = bowls_range_start
         self.bowls_range_end = bowls_range_end
         self.owned_bowls_range = range(self.bowls_range_start, self.bowls_range_end)
-        # a player should also know his strategy
         self.strategy = strategy
-        
 
     def __repr__(self):
         return "<(Player :%s) nested beads: %d; beads_in_bowls: %d; strategy: %d>" % \
                (self.title, self.beads_in_nest, self.beads_in_bowls, self.strategy)
 
+    # decorated methods that work as computed properties
     @property
     def beads_in_nest(self):
+        """gets the beads that are inside this player's Nest"""
         return self.board.bowls[self.bowls_range_end - 1].beads
 
     @property
     def beads_in_bowls(self):
+        """gets the total number of beads in ordinary bowls owned by this player"""
         temp = [bowl.beads for bowl in self.board.bowls[self.bowls_range_start: self.bowls_range_end - 1]]
         return sum(temp)
     
@@ -49,7 +50,7 @@ class Player:
         """ perform a legal move"""
         # empty bowl at index then iterate over next k bowls while adding beads
         _bowls = self.board.bowls
-        beads_to_move = _bowls[start_index].beads
+        beads_to_move = _bowls[start_index].beads  # i.e. over the next k or beads to move bowls
         _bowls[start_index].beads = 0
         end = start_index + beads_to_move + 1
         start = start_index + 1
@@ -58,7 +59,8 @@ class Player:
             i = idx % len(_bowls) # to create a form of loop back somewhat like a circular list
             current_bowl = _bowls[i]
             if current_bowl.type == 'Nest' and not self.owns_bowl(i):
-                # we check that this nest is owned by this user
+                # we check that this nest is owned by this user; if they own it proceed and
+                # place a bead in it, otherwise skip it wholly
                 end += 1
                 start += 1
                 continue
@@ -67,8 +69,9 @@ class Player:
             # :situation1: this bowl is this players nest and thus they get an extra move
             # :situation2: this bowl is empty
             if (current_bowl.type == 'Nest') and (current_bowl.beads == 1) and (idx == end - 1):
-                self.move()
+                self.move() # player gets aother turn if their turn ends in the player's Nest
             if current_bowl.beads == 1 and idx == start_index + beads_to_move and self.owns_bowl(idx):
+                # if a player finishes his/her turn in one of their bowls that is empty
                 # capture beads in this bowl and those of the opposite bowl
                 current_bowl.beads = 0
                 _bowls[self.bowls_range_end - 1].beads += _bowls[self.opposite_bowl(i)].beads + 1
@@ -78,13 +81,13 @@ class Player:
 
     def get_starting_index(self):
         """
-        curates the indexes that are valid for selection as a point this player can start his turn
-        then returns a single index as per the players selected strategy
+        :returns: int: an index denoting where the self player will start his game,
+        Picking this index is bound by the strategy chosen for this player
         """
         valid_indices = []
         max_beads = 0
         if self.strategy == 1:
-            # randomly and uniformly select from occupied bowls
+            # list comprehension to filter out the empty bowls in the board
             valid_indices = [index for index in self.owned_bowls_range
                              if self.board.bowls[index].beads and self.board.bowls[index].type == 'Bowl']
         if self.strategy == 2:
@@ -109,9 +112,8 @@ class Player:
     def state_checker(self):
         """
         :param: None: 
-        :returns: True to indicate that both players have valid moves else False 
-        to indicate that atleast one player has no legal moves
-        Checks for the sufficient conditions to indicate a game over """
+        :returns: True to indicate that this player has a valid move left else False, thus finishing the game
+        checks to see if player has beads in his bowls return False if they are all empty"""
         # check if the current player after his turn if he still has beads in his bowls
         return bool(self.beads_in_bowls)
 
@@ -153,7 +155,7 @@ class Board:
     def __init__(self, beads_per_bowl, num_of_bowls_per_player=6):
         """
         :param beads_per_bowl: denotes the number of beads in each bowl at the start of game
-        :param num_of_bowls_per_player: denotes number of bowls ecluding nest usually six
+        :param num_of_bowls_per_player: denotes number of bowls excluding nest usually six
         """
         self.bowls = []
         total_bowls = (num_of_bowls_per_player + 1) * 2
@@ -166,7 +168,8 @@ class Board:
 
     def __repr__(self):
         """
-        A console displayable representation of the board, synonymous to visualize
+        A console displayable representation of the board, synonymous to visualize, prints the board as
+        on the console as the developer visualized it
         """
         data = [bowl.beads for bowl in self.bowls]
         bowls_len = len(self.bowls)
@@ -193,9 +196,9 @@ class Board:
 
 class Game:
     """
-    A composition game that will take the player and board interfaces and
-    interleave them together. Also takes charge of the simulation runs and the report
-    generation.
+    A composition object that will take the player and board interfaces and
+    interleave them together.
+    Manages player turns in a single game
     """
     def __init__(self, beads_per_bowl, player1_strat, player2_strat):
         self.board = create_board(beads_per_bowl)
@@ -210,7 +213,7 @@ class Game:
 
     def run(self):
         """
-        Executes a single instance of game play that is from the first player move to until
+        Executes a single instance of game play i.e from the first player's move to until
         the game ends(dictated by the first player to run out of legal moves)
         """
         players = [self.player1, self.player2]

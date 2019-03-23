@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch
-from kalaha.interface import Board, create_board, prompt
+from .interface import Board, create_board, prompt
 
 class BoardTest(unittest.TestCase):
     """Verifies the internal representational structure of the board

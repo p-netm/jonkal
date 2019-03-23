@@ -23,8 +23,8 @@ def get_number_of_simulation_tries():
 
 def file_check(filename):
     """
-    checks if the outfall pdf file is already in this directory
-    if so, then delete it.
+    checks if the  pdf file is already in this directory
+    if so, then delete it, otherwise we will have coflicting file names
     """
     this_dir = os.path.abspath(os.path.dirname(__file__))
     file_path = os.path.join(this_dir, filename)
@@ -45,12 +45,16 @@ def plot_bar(diction, filename):
     fig, ax = plt.subplots()
     ax.bar(x, y_values, width=bar_width)
     ax.set_xticks(x + (bar_width/2.0))
+    ax.set_xlabel('Players')
+    ax.set_ylabel('Scores')
+    ax.set_title('Kalaha Experiment')
     ax.set_xticklabels(xlabels)
 
     file_check(filename)
     plt.savefig(filename)
 
 def main():
+    """Its the Main function glues everything"""
     simulations, beads_per_bowl, player1_strat, player2_strat = get_number_of_simulation_tries()
     all_games = []
     games_won_by_player1 = []
@@ -81,7 +85,8 @@ def main():
         print_message = print_fmt.format(len(games_won_by_player1), len(all_games))
     print(print_message)
     filename = "outfall.pdf"
-    data = {"player1": len(games_won_by_player1), "player2": len(games_won_by_player2)}
+    data = {"player1(strategy: {})".format(player1_strat): len(games_won_by_player1),
+            "player2(strategy: {})".format(player2_strat): len(games_won_by_player2)}
     plot_bar(data, filename)
 
 main()
